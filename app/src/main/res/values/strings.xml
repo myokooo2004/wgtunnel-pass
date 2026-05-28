@@ -17,7 +17,7 @@
     <string name="matrix_url" translatable="false">https://matrix.to/#/#wg-tunnel-space:matrix.org</string>
     <string name="telegram_url" translatable="false">https://t.me/wgtunnel</string>
     <string name="error_file_extension">File is not a .conf or .zip</string>
-    <string name="no_tunnels">No tunnels added yet!</string>
+    <string name="no_tunnels">ဖီးနစ် (ထူးကြီး) မှ ကြိုဆိုပါတယ်</string>
     <string name="tunnels">Tunnels</string>
     <string name="tunnel_mobile_data">Tunnel on mobile data</string>
     <string name="privacy_policy">Privacy policy</string>
@@ -101,8 +101,8 @@
     <string name="transport_packet_magic_header">Transport packet magic header</string>
     <string name="underload_packet_magic_header">Underload packet magic header</string>
     <string name="unsure_how">if you are unsure how to proceed</string>
-    <string name="see_the">See the</string>
-    <string name="getting_started_guide">getting started guide</string>
+    <string name="see_the"></string>
+    <string name="getting_started_guide"></string>
     <string name="restart_at_boot">Start on boot</string>
     <string name="vpn_denied_dialog_title">Permission Denied</string>
     <string name="vpn_settings">VPN system settings</string>
