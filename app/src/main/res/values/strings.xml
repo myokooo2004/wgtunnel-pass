@@ -100,7 +100,7 @@
     <string name="response_packet_magic_header">Response packet magic header</string>
     <string name="transport_packet_magic_header">Transport packet magic header</string>
     <string name="underload_packet_magic_header">Underload packet magic header</string>
-    <string name="unsure_how">if you are unsure how to proceed</string>
+    <string name="unsure_how">Password သိမှ အသုံးပြုလို့ရမှာ ဖြစ်ပါတယ်/string>
     <string name="see_the"></string>
     <string name="getting_started_guide"></string>
     <string name="restart_at_boot">Start on boot</string>
