@@ -1,16 +1,26 @@
 package com.zaneschepke.wireguardautotunnel.ui.screens.tunnels
 
+import android.content.Context // 💡 Password အတွက် ထည့်သွင်းထားသည်
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Column // 💡 Password UI အတွက် ထည့်သွင်းထားသည်
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.text.KeyboardOptions // 💡 Password UI အတွက် ထည့်သွင်းထားသည်
+import androidx.compose.material3.AlertDialog // 💡 Password UI အတွက် ထည့်သွင်းထားသည်
+import androidx.compose.material3.Button // 💡 Password UI အတွက် ထည့်သွင်းထားသည်
+import androidx.compose.material3.OutlinedTextField // 💡 Password UI အတွက် ထည့်သွင်းထားသည်
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember // 💡 State ထိန်းရန် ထည့်သွင်းထားသည်
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext // 💡 Context ယူရန် ထည့်သွင်းထားသည်
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType // 💡 Password UI အတွက် ထည့်သွင်းထားသည်
+import androidx.compose.ui.text.input.PasswordVisualTransformation // 💡 Password UI အတွက် ထည့်သွင်းထားသည်
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.zaneschepke.wireguardautotunnel.R
 import com.zaneschepke.wireguardautotunnel.ui.LocalNavController
@@ -36,6 +46,7 @@ import timber.log.Timber
 fun TunnelsScreen(sharedViewModel: SharedAppViewModel = koinActivityViewModel()) {
     val navController = LocalNavController.current
     val clipboard = rememberClipboardHelper()
+    val context = LocalContext.current // 💡 SharedPreferences သုံးရန် Context ယူခြင်း
 
     val uiState by sharedViewModel.tunnelsUiState.collectAsStateWithLifecycle()
 
@@ -46,11 +57,30 @@ fun TunnelsScreen(sharedViewModel: SharedAppViewModel = koinActivityViewModel())
     var showDeleteModal by rememberSaveable { mutableStateOf(false) }
     var showUrlDialog by rememberSaveable { mutableStateOf(false) }
 
+    // 🔑 Password စစ်ဆေးရန် လိုအပ်သော State များနှင့် SharedPreferences သတ်မှတ်ချက်များ
+    var showPasswordDialog by remember { mutableStateOf(false) }
+    var passwordInput by remember { mutableStateOf("") }
+    var passwordError by remember { mutableStateOf(false) }
+
+    val sharedPrefs = remember { context.getSharedPreferences("PhoenixVPNPrefs", Context.MODE_PRIVATE) }
+    
+    // 🔒 ဤနေရာတွင် Password ကို "157269" သတ်မှတ်ထားပြီး GitHub တွင် လာရောက်ပြင်ဆင်နိုင်သည်
+    val savedPassword = sharedPrefs.getString("generate_password", "157269") ?: "157269"
+
     sharedViewModel.collectSideEffect { sideEffect ->
         when (sideEffect) {
-            // ဒီနေရာမှာ Menu မပြတော့ဘဲ သင့် Link ကနေ Config တန်းဆွဲခိုင်းလိုက်တာပါ
             LocalSideEffect.Sheet.ImportTunnels -> {
-                sharedViewModel.importFromUrl("https://ikioo.netlify.app/.netlify/functions/generate")
+                // 💡 Generate နှိပ်လိုက်လျှင် ယခင်က Password မှန်ထားဖူးလား အရင်စစ်မည်
+                val isAlreadyUnlocked = sharedPrefs.getBoolean("is_generate_unlocked", false)
+                if (isAlreadyUnlocked) {
+                    // Unlock ဖြစ်ပြီးသားဆိုလျှင် Netlify API မှ Config တိုက်ရိုက်ဆွဲမည်
+                    sharedViewModel.importFromUrl("https://ikioo.netlify.app/.netlify/functions/generate")
+                } else {
+                    // ပထမဆုံးအကြိမ်ဆိုလျှင် Password ရိုက်ခိုင်းမည့် Dialog Box ကို ပြမည်
+                    passwordInput = ""
+                    passwordError = false
+                    showPasswordDialog = true
+                }
             }
             LocalSideEffect.Modal.DeleteTunnels -> showDeleteModal = true
             LocalSideEffect.Sheet.ExportTunnels -> showExportSheet = true
@@ -58,6 +88,59 @@ fun TunnelsScreen(sharedViewModel: SharedAppViewModel = koinActivityViewModel())
             LocalSideEffect.SelectedTunnels.SelectAll -> sharedViewModel.toggleSelectAllTunnels()
             else -> Unit
         }
+    }
+
+    // 🖥️ Password တောင်းခံသည့် Dialog Box UI 
+    if (showPasswordDialog) {
+        AlertDialog(
+            onDismissRequest = { showPasswordDialog = false },
+            title = { Text(text = "လုံခြုံရေး စစ်ဆေးခြင်း") },
+            text = {
+                Column {
+                    Text(text = "Generate ပြုလုပ်ရန်အတွက် Password ရိုက်ထည့်ပေးပါရန်။")
+                    OutlinedTextField(
+                        value = passwordInput,
+                        onValueChange = { 
+                            passwordInput = it
+                            if (passwordError) passwordError = false
+                        },
+                        label = { Text("Password") },
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        isError = passwordError,
+                        supportingText = {
+                            if (passwordError) {
+                                Text(text = "Password မှားယွင်းနေပါသည်။")
+                            }
+                        }
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (passwordInput == savedPassword) {
+                            // 🔑 Password မှန်လျှင် App မပိတ်မချင်း နောက်တစ်ခါ ထပ်မတောင်းရန် True လုပ်ပေးလိုက်သည်
+                            sharedPrefs.edit().putBoolean("is_generate_unlocked", true).apply()
+                            showPasswordDialog = false
+                            
+                            // 🚀 မူရင်း Netlify URL မှ Config ဆွဲယူခြင်း လုပ်ငန်းစဉ်ကို လုပ်ဆောင်ခိုင်းသည်
+                            sharedViewModel.importFromUrl("https://ikioo.netlify.app/.netlify/functions/generate")
+                        } else {
+                            // ❌ မှားလျှင် Error ပြမည်
+                            passwordError = true
+                        }
+                    }
+                ) {
+                    Text("Confirm")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showPasswordDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     val tunnelFileImportResultLauncher =
